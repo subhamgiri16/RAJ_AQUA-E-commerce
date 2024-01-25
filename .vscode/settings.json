@@ -1,0 +1,9 @@
+{
+    "liveServer.settings.port": 5501,
+    "editor.mouseWheelZoom": true,
+    "python.testing.pytestArgs": [
+        "templates"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
+}
