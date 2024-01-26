@@ -70,14 +70,17 @@ def dashboard():
         user_id = session['user_id']
 
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT * FROM users where id=%s", (user_id,))
+        cursor.execute("SELECT * FROM users WHERE id=%s", (user_id,))
         user = cursor.fetchone()
         cursor.close()
 
         if user:
             return render_template('dashboard.html', user=user)
-            
+
+    # If user is not logged in, redirect to the login page
     return redirect(url_for('login'))
+
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
