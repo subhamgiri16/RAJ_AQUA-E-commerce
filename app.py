@@ -1,68 +1,68 @@
+import os
 from flask import Flask, render_template, redirect, url_for, session, flash
 from flask_wtf import FlaskForm
-from wtforms import StringField,PasswordField,SubmitField
+from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, ValidationError
 import bcrypt
 from flask_mysqldb import MySQL
 
 app = Flask(__name__)
-app.secret_key = "secret"
+app.config['SECRET_KEY'] = os.environ.get('0916ab58f78451413f5b2e0b849dd6667a42649e6ffa47393bb643d2aa4e6b1a', 'default_secret_key')
 
-# Configure MySQL
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = 'root'
 app.config['MYSQL_DB'] = 'rajaqua'
 
-sql = '''
-CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL
-)
-'''
-
 mysql = MySQL(app)
 
 class RegisterForm(FlaskForm):
-    name = StringField("Name",validators=[DataRequired()])
-    email = StringField("Email",validators=[DataRequired(), Email()])
-    password = PasswordField("Password",validators=[DataRequired()])
+    name = StringField("Name", validators=[DataRequired()])
+    email = StringField("Email", validators=[DataRequired(), Email()])
+    password = PasswordField("Password", validators=[DataRequired()])
     submit = SubmitField("Register")
 
-    def validate_email(self,field):
+    def validate_email(self, field):
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT * FROM users where email=%s",(field.data,))
+        cursor.execute("SELECT * FROM users where email=%s", (field.data,))
         user = cursor.fetchone()
         cursor.close()
         if user:
             raise ValidationError('Email Already Taken')
 
 class LoginForm(FlaskForm):
-    email = StringField("Email",validators=[DataRequired(), Email()])
-    password = PasswordField("Password",validators=[DataRequired()])
+    email = StringField("Email", validators=[DataRequired(), Email()])
+    password = PasswordField("Password", validators=[DataRequired()])
     submit = SubmitField("Login")
 
-
-@app.route('/',methods=['GET','POST'])
+@app.route('/', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
         email = form.email.data
         password = form.password.data
 
-        cursor = mysql.connection.cursor()
-        cursor.execute("SELECT * FROM users WHERE email=%s",(email,))
-        user = cursor.fetchone()
-        cursor.close()
-        if user and bcrypt.checkpw(password.encode('utf-8'), user[3].encode('utf-8')):
-            session['user_id'] = user[0]
-            return redirect(url_for('dashboard'))
-        else:
-            flash("Login failed. Please check your email and password")
-            return redirect(url_for('login'))
+        with app.app_context():
+            cursor = mysql.connection.cursor()
+            try:
+                cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
+                user = cursor.fetchone()
 
-    return render_template('login.html',form=form)
+                if user and bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
+                    session['user_id'] = user[0]
+                    return redirect(url_for('dashboard'))
+                else:
+                    flash("Login failed. Please check your email and password")
+                    return redirect(url_for('login'))
+
+            except Exception as e:
+                flash(f"An error occurred: {str(e)}")
+                return redirect(url_for('login'))
+
+            finally:
+                cursor.close()
+
+    return render_template('login.html', form=form)
 
 @app.route('/dashboard')
 def dashboard():
@@ -70,17 +70,16 @@ def dashboard():
         user_id = session['user_id']
 
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT * FROM users where id=%s",(user_id,))
+        cursor.execute("SELECT * FROM users where id=%s", (user_id,))
         user = cursor.fetchone()
         cursor.close()
 
         if user:
-            return render_template('dashboard.html',user=user)
+            return render_template('dashboard.html', user=user)
             
     return redirect(url_for('login'))
 
-
-@app.route('/register',methods=['GET','POST'])
+@app.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
     if form.validate_on_submit():
@@ -88,17 +87,17 @@ def register():
         email = form.email.data
         password = form.password.data
 
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'),bcrypt.gensalt())
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
-        # store data into database 
+        # store data into the database 
         cursor = mysql.connection.cursor()
-        cursor.execute("INSERT INTO users (name,email,password) VALUES (%s,%s,%s)",(name,email,hashed_password))
+        cursor.execute("INSERT INTO users (name, email, password) VALUES (%s, %s, %s)", (name, email, hashed_password))
         mysql.connection.commit()
         cursor.close()
 
         return redirect(url_for('login'))
 
-    return render_template('register.html',form=form)
+    return render_template('register.html', form=form)
 
 @app.route('/logout')
 def logout():
@@ -106,8 +105,5 @@ def logout():
     flash("You have been logged out successfully.")
     return redirect(url_for('login'))
 
-
-# The rest of your password reset functionality can be adapted similarly.
-
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)
