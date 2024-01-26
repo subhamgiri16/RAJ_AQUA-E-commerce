@@ -1,107 +1,50 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-    <!-- 
-      - primary meta tag
-    -->
-    <title> RAJ AQUA: Your One-Stop pet Haven Shop for Happy and Healthy Pets</title>
-    <meta name="title" content="Kitter - Hight Quality Pet Food">
-    <meta name="description" content="This is an eCommerce html template made by codewithsadee">
-  
-    <!-- 
-      - favicon
-    -->
-    <link rel="shortcut icon" href="favicon.svg" type="image/svg+xml">
-  
-    <!-- 
-      - custom css link
-    -->
-    <link rel="stylesheet" href="Style/styles.css">
-  
-    <!-- 
-      - custom js link
-    -->
-    <script src="JS/main.js" defer></script>
-  
-    <!-- 
-      - ionicon link
-    -->
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
-  
-    <!-- 
-      - google font link
-    -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Bangers&family=Carter+One&family=Nunito+Sans:wght@400;700&display=swap"
-      rel="stylesheet">
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-  
-    <!-- 
-      - preload images
-    -->
-    <style>
-      body 
-      {
-        background-color: hsl(0, 0%, 70%);
-          font-family: 'Carter One', cursive;;
-          margin: 20px;
-          text-align: center;
-      }
+{% extends 'app.html' %}
 
-      form {
-          max-width: 300px;
-          margin: 0 auto;
-      }
+{% block content %}
+<div class="container">
+    <h2>Login form</h2>
 
-      label {
-          display: block;
-          margin-bottom: 5px;
-      }
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="alert alert-danger">
+                <ul>
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    {% endwith %}
 
-      input {
-          width: 100%;
-          padding: 8px;
-          margin-bottom: 10px;
-      }
+    <form action="/login" method="POST">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.email.label(for="email") }}
+            {{ form.email(id="email", class="form-control") }}
 
-      button {
-          background-color: #4caf50;
-          color: white;
-          padding: 10px 15px;
-          border: none;
-          border-radius: 5px;
-          cursor: pointer;
-      }
+            {% if form.email.errors %}
+                <ul>
+                    {% for error in form.email.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
 
-      a {
-          text-decoration: none;
-          color: #4caf50;
-      }
-  </style>
-  </head>
-  <body>
-    <h1 class="heading">Raj AQUA</h1>
-    <h3 class="title">Login</h3>
-    <form method="POST" action="{{ url_for('login') }}">
-      <label for="email">Email:</label>
-      <input type="text" id="email" name="email" required />
+        <div class="form-group">
+            {{ form.password.label(for="password") }}
+            {{ form.password(id="password", class="form-control") }}
 
-      <label for="password">Password:</label>
-      <input type="password" id="password" name="password" required />
-
-      <button type="submit">Login</button>
-  </form>
-  <p>Don't have an account? <a href="/register">Register</a></p>
-
-    {% if error %}
-    <div class="alert alert-danger"><strong>Error:</strong> {{ error }}</div>
-    {% endif %}
-  </body>
-</html>
+            {% if form.password.errors %}
+                <ul>
+                    {% for error in form.password.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+        {{ form.submit(class="btn btn-dark mt-4") }}
+        <a href="/register" class="btn btn-secondary mt-4">Register page</a>
+    </form>
+</div>
+{% endblock %}
