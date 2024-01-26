@@ -7,7 +7,7 @@ import bcrypt
 from flask_mysqldb import MySQL
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('0916ab58f78451413f5b2e0b849dd6667a42649e6ffa47393bb643d2aa4e6b1a', 'default_secret_key')
+app.config['SECRET_KEY'] = os.environ.get('0916ab58f78451413f5b2e0b849dd6667a42649e6ffa47393bb643d2aa4e6b1a')
 
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
