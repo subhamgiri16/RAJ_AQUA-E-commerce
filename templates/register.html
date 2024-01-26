@@ -46,6 +46,45 @@
     <!-- 
       - preload images
     -->
+    <style>
+      body 
+      {
+        background-color: hsl(0, 0%, 70%);
+          font-family: 'Carter One', cursive;;
+          margin: 20px;
+          text-align: center;
+      }
+
+      form {
+          max-width: 300px;
+          margin: 0 auto;
+      }
+
+      label {
+          display: block;
+          margin-bottom: 5px;
+      }
+
+      input {
+          width: 100%;
+          padding: 8px;
+          margin-bottom: 10px;
+      }
+
+      button {
+          background-color: #4caf50;
+          color: white;
+          padding: 10px 15px;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+      }
+
+      a {
+          text-decoration: none;
+          color: #4caf50;
+      }
+  </style>
   </head>
   <body>
     <h1 class="heading">Raj AQUA</h1>
@@ -59,7 +98,7 @@
 
       <button type="submit">Register</button>
     </form>
-    <p>Already have an account? <a href="/login">Login</a></p>
+    <p>Already have an account? <a href="/">Login</a></p>
 
     {% if error %}
     <div class="alert alert-danger"><strong>Error:</strong> {{ error }}</div>

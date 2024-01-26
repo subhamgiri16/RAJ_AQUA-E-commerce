@@ -1,109 +1,113 @@
-from flask import Flask, render_template, request, redirect, session, flash
-from flask_mail import Mail, Message
-import pymysql
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, render_template, redirect, url_for, session, flash
+from flask_wtf import FlaskForm
+from wtforms import StringField,PasswordField,SubmitField
+from wtforms.validators import DataRequired, Email, ValidationError
+import bcrypt
+from flask_mysqldb import MySQL
 
 app = Flask(__name__)
 app.secret_key = "secret"
 
 # Configure MySQL
-app.config['mysql_host'] = '127.0.0.1'
-app.config['mysql_user'] = 'root'
-app.config['mysql_password'] = 'root'
-app.config['mysql_db'] = 'rajaqua'
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'root'
+app.config['MYSQL_DB'] = 'rajaqua'
 
-app.config['SERVER_NAME'] = 'localhost:5000'
-
-# Add the missing key to the app.config
-app.config['TEMPLATES_AUTO_RELOAD'] = True
-
-# Remove 'unwanted_keywords' from app.config if present
-unwanted_keywords = ['DEBUG', 'TESTING', 'PROPAGATE_EXCEPTIONS', 'SECRET_KEY', 'PERMANENT_SESSION_LIFETIME', 'USE_X_SENDFILE', 'SERVER_NAME', 'APPLICATION_ROOT', 'SESSION_COOKIE_NAME', 'SESSION_COOKIE_DOMAIN', 'SESSION_COOKIE_PATH', 'SESSION_COOKIE_HTTPONLY', 'SESSION_COOKIE_SECURE', 'SESSION_COOKIE_SAMESITE', 'SESSION_REFRESH_EACH_REQUEST', 'MAX_CONTENT_LENGTH', 'SEND_FILE_MAX_AGE_DEFAULT', 'TRAP_BAD_REQUEST_ERRORS', 'TRAP_HTTP_EXCEPTIONS', 'EXPLAIN_TEMPLATE_LOADING', 'PREFERRED_URL_SCHEME', 'PREFERRED_URL_SCHEME', 'MAX_COOKIE_SIZE']
-for keyword in unwanted_keywords:
-    app.config.pop(keyword, None)
-
-# Initialize Flask-MySQLdb
-mysql = pymysql.connect(
-    host=app.config['mysql_host'],
-    user=app.config['mysql_user'],
-    password=app.config['mysql_password'],
-    db=app.config['mysql_db'],
-    cursorclass=pymysql.cursors.DictCursor
+sql = '''
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL
 )
+'''
 
-# Initialize Flask-Mail (if needed)
-# mail = Mail(app)
+mysql = MySQL(app)
 
-@app.route("/", methods=["GET", "POST"])
+class RegisterForm(FlaskForm):
+    name = StringField("Name",validators=[DataRequired()])
+    email = StringField("Email",validators=[DataRequired(), Email()])
+    password = PasswordField("Password",validators=[DataRequired()])
+    submit = SubmitField("Register")
+
+    def validate_email(self,field):
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT * FROM users where email=%s",(field.data,))
+        user = cursor.fetchone()
+        cursor.close()
+        if user:
+            raise ValidationError('Email Already Taken')
+
+class LoginForm(FlaskForm):
+    email = StringField("Email",validators=[DataRequired(), Email()])
+    password = PasswordField("Password",validators=[DataRequired()])
+    submit = SubmitField("Login")
+
+
+@app.route('/',methods=['GET','POST'])
 def login():
-    error_message = None
+    form = LoginForm()
+    if form.validate_on_submit():
+        email = form.email.data
+        password = form.password.data
 
-    if 'user' in session:
-        return redirect("/dashboard")
-
-    if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
-
-        # Fetch user from MySQL database
-        with mysql.cursor() as cursor:
-            cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
-            user = cursor.fetchone()
-
-        if user and check_password_hash(user['password'], password):
-            session["user"] = email
-            return redirect("/dashboard")
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT * FROM users WHERE email=%s",(email,))
+        user = cursor.fetchone()
+        cursor.close()
+        if user and bcrypt.checkpw(password.encode('utf-8'), user[3].encode('utf-8')):
+            session['user_id'] = user[0]
+            return redirect(url_for('dashboard'))
         else:
-            error_message = "Invalid email or password."
-            flash(error_message, 'error')
+            flash("Login failed. Please check your email and password")
+            return redirect(url_for('login'))
 
-    return render_template('login.html', error=error_message)
+    return render_template('login.html',form=form)
 
-@app.route("/dashboard")
+@app.route('/dashboard')
 def dashboard():
-    if 'user' in session:
-        # Fetch user information from MySQL database
-        with mysql.cursor() as cursor:
-            cursor.execute("SELECT * FROM users WHERE email=%s", (session['user'],))
-            user_info = cursor.fetchone()
+    if 'user_id' in session:
+        user_id = session['user_id']
 
-        return render_template('dashboard.html', user=user_info)
-    else:
-        return redirect("/index.html")
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT * FROM users where id=%s",(user_id,))
+        user = cursor.fetchone()
+        cursor.close()
+
+        if user:
+            return render_template('dashboard.html',user=user)
+            
+    return redirect(url_for('login'))
 
 
-@app.route("/register", methods=["GET", "POST"])
+@app.route('/register',methods=['GET','POST'])
 def register():
-    error_message = None
+    form = RegisterForm()
+    if form.validate_on_submit():
+        name = form.name.data
+        email = form.email.data
+        password = form.password.data
 
-    if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'),bcrypt.gensalt())
 
-        # Hash the password before storing it
-        hashed_password = generate_password_hash(password, method='sha256')
+        # store data into database 
+        cursor = mysql.connection.cursor()
+        cursor.execute("INSERT INTO users (name,email,password) VALUES (%s,%s,%s)",(name,email,hashed_password))
+        mysql.connection.commit()
+        cursor.close()
 
-        # Insert user into MySQL database
-        with mysql.cursor() as cursor:
-            try:
-                cursor.execute("INSERT INTO users (email, password) VALUES (%s, %s)", (email, hashed_password))
-                mysql.commit()
-                flash("Registration successful! You can now log in.", 'success')
-                return redirect("/")
-            except pymysql.IntegrityError:
-                error_message = "Email already exists. Please choose a different one."
-                flash(error_message, 'error')
+        return redirect(url_for('login'))
 
-    return render_template('register.html', error=error_message)
+    return render_template('register.html',form=form)
 
-
-@app.route("/logout")
+@app.route('/logout')
 def logout():
-    session.pop("user", None)
-    return redirect("/")
+    session.pop('user_id', None)
+    flash("You have been logged out successfully.")
+    return redirect(url_for('login'))
 
 
 # The rest of your password reset functionality can be adapted similarly.
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
