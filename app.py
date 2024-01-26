@@ -23,12 +23,12 @@ class RegisterForm(FlaskForm):
     submit = SubmitField("Register")
 
     def validate_email(self, field):
-        with mysql.connection.cursor() as cursor:
-            cursor.execute("SELECT * FROM users WHERE email=%s", (field.data,))
-            user = cursor.fetchone()
-            if user:
-                raise ValidationError('Email Already Taken')
-
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT * FROM users WHERE email=%s", (field.data,))
+        user = cursor.fetchone()
+        cursor.close()
+        if user:
+            raise ValidationError('Email Already Taken')
 
 class LoginForm(FlaskForm):
     email = StringField("Email", validators=[DataRequired(), Email()])
@@ -42,12 +42,13 @@ def login():
         email = form.email.data
         password = form.password.data
 
-        with mysql.connection.cursor() as cursor:
+        with app.app_context():
+            cursor = mysql.connection.cursor()
             try:
                 cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
                 user = cursor.fetchone()
 
-                if user and bcrypt.checkpw(password.encode('utf-8'), user[3].encode('utf-8')):
+                if user and bcrypt.check_password_hash(user[2], password):
                     session['user_id'] = user[0]
                     return redirect(url_for('dashboard'))
                 else:
@@ -58,46 +59,10 @@ def login():
                 flash(f"An error occurred: {str(e)}")
                 return redirect(url_for('login'))
 
+            finally:
+                cursor.close()
 
-@app.route('/register',methods=['GET','POST'])
-def register():
-    form = RegisterForm()
-    if form.validate_on_submit():
-        name = form.name.data
-        email = form.email.data
-        password = form.password.data
-
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'),bcrypt.gensalt())
-
-        # store data into database 
-        cursor = mysql.connection.cursor()
-        cursor.execute("INSERT INTO users (name,email,password) VALUES (%s,%s,%s)",(name,email,hashed_password))
-        mysql.connection.commit()
-        cursor.close()
-
-        return redirect(url_for('login'))
-
-    return render_template('register.html',form=form)
-
-@app.route('/',methods=['GET','POST'])
-def login():
-    form = LoginForm()
-    if form.validate_on_submit():
-        email = form.email.data
-        password = form.password.data
-
-        cursor = mysql.connection.cursor()
-        cursor.execute("SELECT * FROM users WHERE email=%s",(email,))
-        user = cursor.fetchone()
-        cursor.close()
-        if user and bcrypt.checkpw(password.encode('utf-8'), user[3].encode('utf-8')):
-            session['user_id'] = user[0]
-            return redirect(url_for('dashboard'))
-        else:
-            flash("Login failed. Please check your email and password")
-            return redirect(url_for('login'))
-
-    return render_template('login.html',form=form)
+    return render_template('login.html', form=form)
 
 @app.route('/dashboard')
 def dashboard():
@@ -105,14 +70,38 @@ def dashboard():
         user_id = session['user_id']
 
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT * FROM users where id=%s",(user_id,))
+        cursor.execute("SELECT * FROM users WHERE id=%s", (user_id,))
         user = cursor.fetchone()
         cursor.close()
 
         if user:
-            return render_template('dashboard.html',user=user)
-            
+            return render_template('dashboard.html', user=user)
+
+    # If user is not logged in, redirect to the login page
     return redirect(url_for('login'))
+
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RegisterForm()
+    if form.validate_on_submit():
+        name = form.name.data
+        email = form.email.data
+        password = form.password.data
+
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+        # store data into the database 
+        cursor = mysql.connection.cursor()
+        cursor.execute("INSERT INTO users (name, email, password) VALUES (%s, %s, %s)", (name, email, hashed_password))
+        mysql.connection.commit()
+        cursor.close()
+
+        return redirect(url_for('login'))
+
+    return render_template('register.html', form=form)
+
 
 @app.route('/logout')
 def logout():
@@ -120,8 +109,5 @@ def logout():
     flash("You have been logged out successfully.")
     return redirect(url_for('login'))
 
-
-
-
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)

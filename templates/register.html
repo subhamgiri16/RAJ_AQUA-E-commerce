@@ -1,20 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    
     <!-- Primary meta tag -->
     <title>RAJ AQUA: Your One-Stop Pet Haven Shop for Happy and Healthy Pets</title>
     <meta name="description" content="This is an eCommerce HTML template made by codewithsadee">
-
+    
     <!-- Favicon -->
     <link rel="shortcut icon" href="favicon.svg" type="image/svg+xml">
-
+    
     <!-- Custom CSS link -->
     <link rel="stylesheet" href="Style/styles.css">
+    
+    <!-- Custom JS link -->
+    <script src="JS/login_register.js" defer></script>
+    
+    <!-- Ionicon link -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    
+    <!-- Google Font link -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Carter+One&family=Nunito+Sans:wght@400;700&display=swap" rel="stylesheet">
     
     <!-- Preload images -->
     <style>
@@ -62,15 +73,15 @@
         <h2>Register form</h2>
 
         {% with messages = get_flashed_messages() %}
-        {% if messages %}
-        <div class="flash-messages">
-            <ul class="flash">
-                {% for message in messages %}
-                <li>{{ message }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-        {% endif %}
+            {% if messages %}
+                <div class="flash-messages">
+                    <ul class="flash">
+                        {% for message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
         {% endwith %}
 
         <form action="/register" method="POST">
@@ -80,11 +91,11 @@
                 {{ form.name(id="name", class="form-control")}}
 
                 {% if form.name.errors %}
-                <ul class="text-danger">
-                    {% for error in form.name.errors %}
-                    <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
+                    <ul class="text-danger">
+                        {% for error in form.name.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
                 {% endif %}
             </div>
 
@@ -93,11 +104,11 @@
                 {{ form.email(id="email", class="form-control")}}
 
                 {% if form.email.errors %}
-                <ul class="text-danger">
-                    {% for error in form.email.errors %}
-                    <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
+                    <ul class="text-danger">
+                        {% for error in form.email.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
                 {% endif %}
             </div>
 
@@ -106,11 +117,11 @@
                 {{ form.password(id="password", class="form-control")}}
 
                 {% if form.password.errors %}
-                <ul class="text-danger">
-                    {% for error in form.password.errors %}
-                    <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
+                    <ul class="text-danger">
+                        {% for error in form.password.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
                 {% endif %}
             </div>
 
@@ -118,10 +129,5 @@
             <a href="/login" class="btn btn-secondary mt-4">Login page</a>
         </form>
     </div>
-
-    <!-- Ionicon link -->
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </body>
-
 </html>
